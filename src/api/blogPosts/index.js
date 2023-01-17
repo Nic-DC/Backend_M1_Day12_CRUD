@@ -82,6 +82,14 @@ blogPostsRouter.put("/:id", async (req, res, next) => {
 // 5. DELETE
 blogPostsRouter.delete("/:id", async (req, res, next) => {
   try {
+    const { id } = req.params;
+    const deletedBlogPost = await BlogPostsModel.findByIdAndDelete(id);
+
+    if (deletedBlogPost) {
+      res.status(204).send({ message: `The blog post with id: ${id} successfully deleted` });
+    } else {
+      next(NotFound(`The blog post with id: ${id} is NOT in our archive`));
+    }
   } catch (error) {
     next(error);
   }
