@@ -16,6 +16,12 @@ const blogPostsSchema = new Schema(
       avatar: { type: String, required: false },
     },
     content: [String],
+    comments: [
+      {
+        picture: { type: String, required: false },
+        content: { type: String, required: true },
+      },
+    ],
   },
   {
     timestamps: true,

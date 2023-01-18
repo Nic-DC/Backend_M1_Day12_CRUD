@@ -94,4 +94,124 @@ blogPostsRouter.delete("/:id", async (req, res, next) => {
     next(error);
   }
 });
+
+/* --------------------------- blog posts: EMBEDDED COMMENTS ------------------------- */
+// 1. POST
+blogPostsRouter.post("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const updatedBlogPost = await BlogPostsModel.findByIdAndUpdate(
+      id,
+      { $push: { comments: req.body } },
+      { new: true, runValidators: true }
+    );
+
+    if (updatedBlogPost) {
+      res.status(201).send({
+        message: `Blog post with id: ${id} successfully updated and you can see all its comments below:`,
+        bloggPost: updatedBlogPost,
+      });
+    } else {
+      next(NotFound(`Blog post with id: ${id} not in our archive`));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET all comments
+blogPostsRouter.get("/:id/comments", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const searchedBlogPost = await BlogPostsModel.findById(id);
+    console.log("searchedBlogPost: ", searchedBlogPost);
+
+    if (searchedBlogPost) {
+      res.send(searchedBlogPost.comments);
+    } else {
+      next(NotFound(`Blog post with id: ${id} not in our archive`));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 3. GET comment by id
+blogPostsRouter.get("/:id/comments/:commentId", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { commentId } = req.params;
+
+    const searchedBlogPost = await BlogPostsModel.findById(id);
+
+    if (searchedBlogPost) {
+      const searchedComment = searchedBlogPost.comments.find((comment) => comment._id.toString() === commentId);
+
+      if (searchedComment) {
+        res.send(searchedComment);
+      } else {
+        next(NotFound(`Comment with id: ${commentId} is not in our archive`));
+      }
+    } else {
+      next(NotFound(`Blog post with id: ${id} not in our archive`));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 4. PUT comment
+blogPostsRouter.put("/:id/comments/:commentId", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { commentId } = req.params;
+
+    const searchedBlogPost = await BlogPostsModel.findById(id);
+
+    if (searchedBlogPost) {
+      const index = searchedBlogPost.comments.findIndex((comment) => comment._id.toString() === commentId);
+
+      if (index !== -1) {
+        searchedBlogPost.comments[index] = { ...searchedBlogPost.comments[index].toObject(), ...req.body };
+
+        await searchedBlogPost.save();
+
+        res.send({
+          message: `The comment with id: ${commentId} has been successfully updated and you can see it below`,
+          updatedComment: searchedBlogPost.comments[index],
+        });
+      }
+    } else {
+      next(NotFound(`Blog post with id: ${id} not in our archive`));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 5. DELETE comment
+blogPostsRouter.delete("/:id/comments/:commentId", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { commentId } = req.params;
+
+    const toBeDeletedBlogPost = await BlogPostsModel.findByIdAndUpdate(
+      id,
+      { $pull: { comments: { _id: commentId } } },
+      { new: true }
+    );
+
+    if (toBeDeletedBlogPost) {
+      res.send({
+        message: `Comment with id: ${commentId} from blog post '${toBeDeletedBlogPost.title}' has been successfully deleted`,
+      });
+    } else {
+      next(NotFound(`Blog post with id: ${id} not in our archive`));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default blogPostsRouter;
