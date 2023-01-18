@@ -3,6 +3,8 @@ import BlogPostsModel from "./model.js";
 
 import createHttpError from "http-errors";
 
+import q2m from "query-to-mongo";
+
 const { NotFound, BadRequest } = createHttpError;
 
 const blogPostsRouter = express.Router();
@@ -209,6 +211,16 @@ blogPostsRouter.delete("/:id/comments/:commentId", async (req, res, next) => {
     } else {
       next(NotFound(`Blog post with id: ${id} not in our archive`));
     }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/* --------------------------- comments: PAGINATION ------------------------- */
+blogPostsRouter.get("/:id/comments/all/withPagination", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    console.log("req.query", req.query);
   } catch (error) {
     next(error);
   }
