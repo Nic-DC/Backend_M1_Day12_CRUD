@@ -1,5 +1,7 @@
 import express from "express";
 import BlogPostsModel from "./model.js";
+import UsersModel from "../users/model.js";
+import CommnentsModel from "../comments/model.js";
 
 import createHttpError from "http-errors";
 
@@ -9,7 +11,7 @@ const { NotFound, BadRequest } = createHttpError;
 
 const blogPostsRouter = express.Router();
 
-// POST new blog post
+//POST with references
 blogPostsRouter.post("/", async (req, res, next) => {
   try {
     const newBlogPost = new BlogPostsModel(req.body);
@@ -24,6 +26,22 @@ blogPostsRouter.post("/", async (req, res, next) => {
     next(error);
   }
 });
+
+// POST new blog post
+// blogPostsRouter.post("/", async (req, res, next) => {
+//   try {
+//     const newBlogPost = new BlogPostsModel(req.body);
+//     const { _id } = await newBlogPost.save();
+
+//     if (_id) {
+//       res.status(201).send({ message: `The new blog post with id: ${_id} successfully created` });
+//     } else {
+//       next(BadRequest(`Something went wrong for the world...`));
+//     }
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 
 // 2. GET all blog posts
 blogPostsRouter.get("/", async (req, res, next) => {
