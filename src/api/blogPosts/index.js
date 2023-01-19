@@ -130,21 +130,40 @@ blogPostsRouter.delete("/:id", async (req, res, next) => {
 blogPostsRouter.post("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
+    const user = await UsersModel.findById(loggedInUser2);
+    const blogPost = await BlogPostsModel.findById(id);
 
-    const updatedBlogPost = await BlogPostsModel.findByIdAndUpdate(
-      id,
-      { $push: { comments: req.body } },
-      { new: true, runValidators: true }
-    );
+    if (loggedInUser2 && blogPost) {
+      const newComment = new CommnentsModel(req.body);
+      newComment.likes.push(user);
+      newComment.blogID.push(blogPost._id);
 
-    if (updatedBlogPost) {
-      res.status(201).send({
-        message: `Blog post with id: ${id} successfully updated and you can see all its comments below:`,
-        bloggPost: updatedBlogPost,
-      });
+      await newComment.save();
+      blogPost.comments.push(newComment);
+      await blogPost.save();
+      if (newComment) {
+        res.status(201).send({ message: `The new comment successfully created`, newComment: newComment });
+      } else {
+        next(BadRequest(`Something went wrong for the world...`));
+      }
     } else {
-      next(NotFound(`Blog post with id: ${id} not in our archive`));
+      next(NotFound(`There is no user with id: ${loggedInUser2} or blogPost with id: ${id} in our archive`));
     }
+
+    // const updatedBlogPost = await BlogPostsModel.findByIdAndUpdate(
+    //   id,
+    //   { $push: { comments: req.body } },
+    //   { new: true, runValidators: true }
+    // );
+
+    // if (updatedBlogPost) {
+    //   res.status(201).send({
+    //     message: `Blog post with id: ${id} successfully updated and you can see all its comments below:`,
+    //     bloggPost: updatedBlogPost,
+    //   });
+    // } else {
+    //   next(NotFound(`Blog post with id: ${id} not in our archive`));
+    // }
   } catch (error) {
     next(error);
   }
@@ -152,45 +171,45 @@ blogPostsRouter.post("/:id", async (req, res, next) => {
 
 /* --------------------------- blog posts: EMBEDDED COMMENTS ------------------------- */
 // 1. POST
-blogPostsRouter.post("/:id", async (req, res, next) => {
-  try {
-    const { id } = req.params;
+// blogPostsRouter.post("/:id", async (req, res, next) => {
+//   try {
+//     const { id } = req.params;
 
-    const updatedBlogPost = await BlogPostsModel.findByIdAndUpdate(
-      id,
-      { $push: { comments: req.body } },
-      { new: true, runValidators: true }
-    );
+//     const updatedBlogPost = await BlogPostsModel.findByIdAndUpdate(
+//       id,
+//       { $push: { comments: req.body } },
+//       { new: true, runValidators: true }
+//     );
 
-    if (updatedBlogPost) {
-      res.status(201).send({
-        message: `Blog post with id: ${id} successfully updated and you can see all its comments below:`,
-        bloggPost: updatedBlogPost,
-      });
-    } else {
-      next(NotFound(`Blog post with id: ${id} not in our archive`));
-    }
-  } catch (error) {
-    next(error);
-  }
-});
+//     if (updatedBlogPost) {
+//       res.status(201).send({
+//         message: `Blog post with id: ${id} successfully updated and you can see all its comments below:`,
+//         bloggPost: updatedBlogPost,
+//       });
+//     } else {
+//       next(NotFound(`Blog post with id: ${id} not in our archive`));
+//     }
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 
 // GET all comments
-blogPostsRouter.get("/:id/comments", async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const searchedBlogPost = await BlogPostsModel.findById(id);
-    console.log("searchedBlogPost: ", searchedBlogPost);
+// blogPostsRouter.get("/:id/comments", async (req, res, next) => {
+//   try {
+//     const { id } = req.params;
+//     const searchedBlogPost = await BlogPostsModel.findById(id);
+//     console.log("searchedBlogPost: ", searchedBlogPost);
 
-    if (searchedBlogPost) {
-      res.send(searchedBlogPost.comments);
-    } else {
-      next(NotFound(`Blog post with id: ${id} not in our archive`));
-    }
-  } catch (error) {
-    next(error);
-  }
-});
+//     if (searchedBlogPost) {
+//       res.send(searchedBlogPost.comments);
+//     } else {
+//       next(NotFound(`Blog post with id: ${id} not in our archive`));
+//     }
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 
 // 3. GET comment by id
 blogPostsRouter.get("/:id/comments/:commentId", async (req, res, next) => {
