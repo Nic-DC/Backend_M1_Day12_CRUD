@@ -3,6 +3,9 @@ import BlogPostsModel from "./model.js";
 import UsersModel from "../users/model.js";
 import CommnentsModel from "../comments/model.js";
 
+const loggedInUser = process.env.USER_ID;
+const loggedInUser2 = process.env.USER_ID_2;
+
 import createHttpError from "http-errors";
 
 import q2m from "query-to-mongo";
@@ -14,13 +17,20 @@ const blogPostsRouter = express.Router();
 //POST with references
 blogPostsRouter.post("/", async (req, res, next) => {
   try {
-    const newBlogPost = new BlogPostsModel(req.body);
-    const { _id } = await newBlogPost.save();
+    const user = await UsersModel.findById(loggedInUser2);
 
-    if (_id) {
-      res.status(201).send({ message: `The new blog post with id: ${_id} successfully created` });
+    if (user) {
+      const newBlogPost = new BlogPostsModel(req.body);
+
+      newBlogPost.authors.push(user);
+      await newBlogPost.save();
+      if (newBlogPost) {
+        res.status(201).send({ message: `The new blog post successfully created`, newBlogPost: newBlogPost });
+      } else {
+        next(BadRequest(`Something went wrong for the world...`));
+      }
     } else {
-      next(BadRequest(`Something went wrong for the world...`));
+      next(NotFound(`User with id: ${loggedInUser} not found`));
     }
   } catch (error) {
     next(error);
@@ -46,7 +56,7 @@ blogPostsRouter.post("/", async (req, res, next) => {
 // 2. GET all blog posts
 blogPostsRouter.get("/", async (req, res, next) => {
   try {
-    const blogPosts = await BlogPostsModel.find();
+    const blogPosts = await BlogPostsModel.find().populate("authors");
     if (blogPosts.length > 0) {
       res.send(blogPosts);
     } else {
@@ -61,7 +71,7 @@ blogPostsRouter.get("/", async (req, res, next) => {
 blogPostsRouter.get("/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const searchedBlogPost = await BlogPostsModel.findById(id);
+    const searchedBlogPost = await BlogPostsModel.findById(id).populate("authors");
 
     if (searchedBlogPost) {
       res.send(searchedBlogPost);
@@ -109,6 +119,31 @@ blogPostsRouter.delete("/:id", async (req, res, next) => {
       res.send({ message: `The blog post with name: ${deletedBlogPost.title} and id: ${id} successfully deleted` });
     } else {
       next(NotFound(`The blog post with id: ${id} is NOT in our archive`));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+/* --------------------------- blog posts: COMMENTS by REFERENCE ------------------------- */
+// 1. POST
+blogPostsRouter.post("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const updatedBlogPost = await BlogPostsModel.findByIdAndUpdate(
+      id,
+      { $push: { comments: req.body } },
+      { new: true, runValidators: true }
+    );
+
+    if (updatedBlogPost) {
+      res.status(201).send({
+        message: `Blog post with id: ${id} successfully updated and you can see all its comments below:`,
+        bloggPost: updatedBlogPost,
+      });
+    } else {
+      next(NotFound(`Blog post with id: ${id} not in our archive`));
     }
   } catch (error) {
     next(error);
