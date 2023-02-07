@@ -4,6 +4,8 @@ import UsersModel from "./model.js";
 import { basicAuthMiddleware } from "../../lib/auth/basicAuth.js";
 import { adminOnlyMiddleware } from "../../lib/auth/adminOnly.js";
 
+const { NotFound } = createHttpError;
+
 const usersRouter = express.Router();
 
 usersRouter.post("/", async (req, res, next) => {
@@ -26,7 +28,22 @@ usersRouter.get("/", basicAuthMiddleware, adminOnlyMiddleware, async (req, res, 
   }
 });
 
-usersRouter.get("/:userId", async (req, res, next) => {
+// GET - your own user profile
+usersRouter.route("/me").get(basicAuthMiddleware, async (req, res, next) => {
+  try {
+    const myUserProfile = req.user;
+    if (myUserProfile) {
+      res.send(myUserProfile);
+    } else {
+      next(NotFound(`The user is MIA`));
+    }
+  } catch (error) {
+    console.log(`/me - GET user ERROR: ${error}`);
+    next(error);
+  }
+});
+
+usersRouter.get("/:userId", basicAuthMiddleware, async (req, res, next) => {
   try {
     const user = await UsersModel.findById(req.params.userId);
     if (user) {
