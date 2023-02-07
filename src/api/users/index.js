@@ -2,6 +2,7 @@ import express from "express";
 import createHttpError from "http-errors";
 import UsersModel from "./model.js";
 import { basicAuthMiddleware } from "../../lib/auth/basicAuth.js";
+import { adminOnlyMiddleware } from "../../lib/auth/adminOnly.js";
 
 const usersRouter = express.Router();
 
@@ -15,7 +16,7 @@ usersRouter.post("/", async (req, res, next) => {
   }
 });
 
-usersRouter.get("/", basicAuthMiddleware, async (req, res, next) => {
+usersRouter.get("/", basicAuthMiddleware, adminOnlyMiddleware, async (req, res, next) => {
   try {
     // const users = await UsersModel.find({}, { firstName: 1, lastName: 1 });
     const users = await UsersModel.find();
