@@ -1,14 +1,26 @@
 import express from "express";
 import createHttpError from "http-errors";
 import AuthorsModel from "./model.js";
-
+import { basicAuthMiddleware } from "../../lib/auth/basicAuth.js";
+import BlogPostsModel from "../blogPosts/model.js";
 const authorsRouter = express.Router();
 
 authorsRouter.post("/", async (req, res, next) => {
   try {
-    const newAuthor = new AuthorsModel(req.body); // here it happens validation (thanks to Mongoose) of req.body, if it is not ok Mongoose will throw an error
-    const { _id } = await newAuthor.save();
-    res.status(201).send({ _id });
+    const author = new AuthorsModel(req.body);
+    const newAuthor = await author.save();
+    res.status(201).send(newAuthor);
+  } catch (error) {
+    console.log("POST author - ERROR: ", error);
+    next(error);
+  }
+});
+
+// GET - my blogs
+authorsRouter.get("/me/stories", basicAuthMiddleware, async (req, res, next) => {
+  try {
+    const blogPosts = await BlogPostsModel.find({ authors: req.user._id.toString() });
+    res.send(blogPosts);
   } catch (error) {
     next(error);
   }

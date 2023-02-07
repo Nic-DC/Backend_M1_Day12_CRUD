@@ -9,20 +9,22 @@ const loggedInUser2 = process.env.USER_ID_2;
 import createHttpError from "http-errors";
 
 import q2m from "query-to-mongo";
+import { basicAuthMiddleware } from "../../lib/auth/basicAuth.js";
 
 const { NotFound, BadRequest } = createHttpError;
 
 const blogPostsRouter = express.Router();
 
 //POST with references
-blogPostsRouter.post("/", async (req, res, next) => {
+blogPostsRouter.post("/", basicAuthMiddleware, async (req, res, next) => {
   try {
-    const user = await UsersModel.findById(loggedInUser2);
+    const user = req.user;
 
     if (user) {
       const newBlogPost = new BlogPostsModel(req.body);
 
-      newBlogPost.authors.push(user);
+      // newBlogPost.authors.push(user);
+      newBlogPost.authors = user;
       await newBlogPost.save();
       if (newBlogPost) {
         res.status(201).send({ message: `The new blog post successfully created`, newBlogPost: newBlogPost });
