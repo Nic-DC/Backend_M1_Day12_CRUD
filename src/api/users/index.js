@@ -1,22 +1,24 @@
 import express from "express";
 import createHttpError from "http-errors";
 import UsersModel from "./model.js";
+import { basicAuthMiddleware } from "../../lib/auth/basicAuth.js";
 
 const usersRouter = express.Router();
 
 usersRouter.post("/", async (req, res, next) => {
   try {
-    const newUser = new UsersModel(req.body); // here it happens validation (thanks to Mongoose) of req.body, if it is not ok Mongoose will throw an error
-    const { _id } = await newUser.save();
-    res.status(201).send({ _id });
+    const user = new UsersModel(req.body); // here it happens validation (thanks to Mongoose) of req.body, if it is not ok Mongoose will throw an error
+    const newUser = await user.save();
+    res.status(201).send(newUser);
   } catch (error) {
     next(error);
   }
 });
 
-usersRouter.get("/", async (req, res, next) => {
+usersRouter.get("/", basicAuthMiddleware, async (req, res, next) => {
   try {
-    const users = await UsersModel.find({}, { firstName: 1, lastName: 1 });
+    // const users = await UsersModel.find({}, { firstName: 1, lastName: 1 });
+    const users = await UsersModel.find();
     res.send(users);
   } catch (error) {
     next(error);
