@@ -10,6 +10,7 @@ const usersSchema = new Schema(
     username: { type: String, required: true },
     email: { type: String, required: true },
     password: { type: String, required: true },
+    isRegistered: { type: Boolean, enum: [false, true], default: false },
     role: { type: String, enum: ["User", "Admin"], default: "User" },
     dateOfBirth: { type: Date, required: false },
     age: { type: Number, required: false, min: 18, max: 65 },

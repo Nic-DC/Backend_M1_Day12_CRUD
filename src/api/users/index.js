@@ -1,7 +1,7 @@
 import express from "express";
 import createHttpError from "http-errors";
 import UsersModel from "./model.js";
-import { basicAuthMiddleware } from "../../lib/auth/basicAuth.js";
+import { JWTAuthMiddleware } from "../../lib/auth/JWTAuth.js";
 import { adminOnlyMiddleware } from "../../lib/auth/adminOnly.js";
 import { createAccessToken } from "../../lib/tools/tools.js";
 
@@ -13,14 +13,10 @@ const usersRouter = express.Router();
 usersRouter.post("/register", async (req, res, next) => {
   try {
     const body = req.body;
-    // const addToRegistry = { ...req.body, isRegistered: true };
-    console.log("body: ", body);
     body.isRegistered = true;
-    console.log("body isRegistered: ", body);
 
-    // const user = new UsersModel(addToRegistry); // here it happens validation (thanks to Mongoose) of req.body, if it is not ok Mongoose will throw an error
-    const user = new UsersModel(body);
-    console.log("user isRegistered: ", user);
+    const user = new UsersModel(body); // here it happens validation (thanks to Mongoose) of req.body, if it is not ok Mongoose will throw an error
+
     const newUser = await user.save();
     res.status(201).send(newUser);
   } catch (error) {
@@ -28,7 +24,6 @@ usersRouter.post("/register", async (req, res, next) => {
   }
 });
 
-// checkCredentialsUsername
 // LOGIN
 usersRouter.post("/login", async (req, res, next) => {
   try {
@@ -58,7 +53,7 @@ usersRouter.post("/", async (req, res, next) => {
   }
 });
 
-usersRouter.get("/", basicAuthMiddleware, adminOnlyMiddleware, async (req, res, next) => {
+usersRouter.get("/", JWTAuthMiddleware, adminOnlyMiddleware, async (req, res, next) => {
   try {
     // const users = await UsersModel.find({}, { firstName: 1, lastName: 1 });
     const users = await UsersModel.find();
@@ -68,10 +63,22 @@ usersRouter.get("/", basicAuthMiddleware, adminOnlyMiddleware, async (req, res, 
   }
 });
 
+// usersRouter.get("/", JWTAuthMiddleware, adminOnlyMiddleware, async (req, res, next) => {
+//   try {
+//     // const users = await UsersModel.find({}, { firstName: 1, lastName: 1 });
+//     const users = await UsersModel.find();
+//     res.send(users);
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
 // GET - your own user profile
-usersRouter.route("/me").get(basicAuthMiddleware, async (req, res, next) => {
+usersRouter.route("/me").get(JWTAuthMiddleware, async (req, res, next) => {
   try {
-    const myUserProfile = req.user;
+    const { _id } = req.user;
+
+    const myUserProfile = await UsersModel.findById(_id);
     if (myUserProfile) {
       res.send(myUserProfile);
     } else {
@@ -83,7 +90,7 @@ usersRouter.route("/me").get(basicAuthMiddleware, async (req, res, next) => {
   }
 });
 
-usersRouter.get("/:userId", basicAuthMiddleware, async (req, res, next) => {
+usersRouter.get("/:userId", JWTAuthMiddleware, async (req, res, next) => {
   try {
     const user = await UsersModel.findById(req.params.userId);
     if (user) {
@@ -105,11 +112,6 @@ usersRouter.put("/:userId", async (req, res, next) => {
       // By default validation is off here --> runValidators: true
     );
 
-    // ******************************************************** ALTERNATIVE METHOD **************************************************
-    /*     const user = await UsersModel.findById(req.params.userId) // When you do a findById, findOne, etc,... you get back not a PLAIN JS OBJECT but you obtain a MONGOOSE DOCUMENT which is an object with some superpowers
-    user.firstName = "George"
-    await user.save()
-    res.send(user) */
     if (updatedUser) {
       res.send(updatedUser);
     } else {
