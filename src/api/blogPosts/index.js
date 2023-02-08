@@ -10,6 +10,7 @@ import createHttpError from "http-errors";
 
 import q2m from "query-to-mongo";
 import { basicAuthMiddleware } from "../../lib/auth/basicAuth.js";
+import { onlyOwner } from "../../lib/auth/onlyOwner.js";
 
 const { NotFound, BadRequest } = createHttpError;
 
@@ -56,7 +57,7 @@ blogPostsRouter.post("/", basicAuthMiddleware, async (req, res, next) => {
 // });
 
 // 2. GET all blog posts
-blogPostsRouter.get("/", async (req, res, next) => {
+blogPostsRouter.get("/", basicAuthMiddleware, async (req, res, next) => {
   try {
     const blogPosts = await BlogPostsModel.find().populate("authors");
     if (blogPosts.length > 0) {
@@ -114,6 +115,7 @@ blogPostsRouter.put("/:id", async (req, res, next) => {
 // 5. DELETE
 blogPostsRouter.delete("/:id", async (req, res, next) => {
   try {
+    // const blog = req.blog
     const { id } = req.params;
     const deletedBlogPost = await BlogPostsModel.findByIdAndDelete(id);
 
