@@ -3,10 +3,50 @@ import createHttpError from "http-errors";
 import UsersModel from "./model.js";
 import { basicAuthMiddleware } from "../../lib/auth/basicAuth.js";
 import { adminOnlyMiddleware } from "../../lib/auth/adminOnly.js";
+import { createAccessToken } from "../../lib/tools/tools.js";
 
 const { NotFound } = createHttpError;
 
 const usersRouter = express.Router();
+
+// REGISTER
+usersRouter.post("/register", async (req, res, next) => {
+  try {
+    const body = req.body;
+    // const addToRegistry = { ...req.body, isRegistered: true };
+    console.log("body: ", body);
+    body.isRegistered = true;
+    console.log("body isRegistered: ", body);
+
+    // const user = new UsersModel(addToRegistry); // here it happens validation (thanks to Mongoose) of req.body, if it is not ok Mongoose will throw an error
+    const user = new UsersModel(body);
+    console.log("user isRegistered: ", user);
+    const newUser = await user.save();
+    res.status(201).send(newUser);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// checkCredentialsUsername
+// LOGIN
+usersRouter.post("/login", async (req, res, next) => {
+  try {
+    const { username, password } = req.body;
+    const user = await UsersModel.checkCredentialsUsername(username, password);
+
+    if (user) {
+      const payload = { _id: user._id, role: user.role };
+      const accessToken = await createAccessToken(payload);
+
+      res.status(201).send(accessToken);
+    } else {
+      next(createHttpError(401, "Credentials are not ok!"));
+    }
+  } catch (error) {
+    next(error);
+  }
+});
 
 usersRouter.post("/", async (req, res, next) => {
   try {

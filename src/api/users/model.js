@@ -7,6 +7,7 @@ const usersSchema = new Schema(
   {
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
+    username: { type: String, required: true },
     email: { type: String, required: true },
     password: { type: String, required: true },
     role: { type: String, enum: ["User", "Admin"], default: "User" },
@@ -93,6 +94,22 @@ usersSchema.static("checkCredentials", async function (email, password) {
     }
   } else {
     // 5. In case of user not found --> return null
+    return null;
+  }
+});
+
+usersSchema.static("checkCredentialsUsername", async function (username, password) {
+  const user = await this.findOne({ username });
+
+  if (user) {
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (passwordMatch) {
+      return user;
+    } else {
+      return null;
+    }
+  } else {
     return null;
   }
 });
